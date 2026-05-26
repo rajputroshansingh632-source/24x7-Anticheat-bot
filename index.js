@@ -4,8 +4,8 @@ const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 function createBot() {
 
   const bot = mineflayer.createBot({
-    host: 'infiXtream.aternos.me',
-    port: 22393,
+    host: 'gold.magmanode.com',
+    port: 25786,
     username: 'zeroxcheat',
     version: '1.21.4'
   });
