@@ -25,17 +25,22 @@ function createBot() {
 
     bot.pathfinder.setMovements(defaultMove);
 
-    // Register
+    // =====================
+    // Register & Login
+    // =====================
+
     setTimeout(() => {
       bot.chat('/register 1029384756 1029384756');
     }, 3000);
 
-    // Login
     setTimeout(() => {
       bot.chat('/login 1029384756');
     }, 6000);
 
-    // Random movement every 30 sec
+    // =====================
+    // Anti AFK Movement
+    // =====================
+
     setInterval(() => {
 
       try {
@@ -58,13 +63,26 @@ function createBot() {
           bot.setControlState('jump', false);
         }, 1000);
 
+        // Forward movement
+        if (Math.random() > 0.5) {
+
+          bot.setControlState('forward', true);
+
+          setTimeout(() => {
+            bot.setControlState('forward', false);
+          }, 3000);
+
+        }
+
         // Sneak randomly
         if (Math.random() > 0.5) {
+
           bot.setControlState('sneak', true);
 
           setTimeout(() => {
             bot.setControlState('sneak', false);
           }, 2000);
+
         }
 
         // Look around
@@ -82,7 +100,10 @@ function createBot() {
 
     }, 30000);
 
-    // Try breaking nearby block
+    // =====================
+    // Break Nearby Block
+    // =====================
+
     setInterval(async () => {
 
       try {
@@ -93,17 +114,25 @@ function createBot() {
         });
 
         if (block) {
+
           await bot.dig(block);
+
           console.log('Tried breaking block');
+
         }
 
       } catch (err) {
+
         console.log('Break failed');
+
       }
 
     }, 120000);
 
-    // Try placing block
+    // =====================
+    // Place Block
+    // =====================
+
     setInterval(async () => {
 
       try {
@@ -120,17 +149,26 @@ function createBot() {
 
         if (!referenceBlock) return;
 
-        await bot.placeBlock(referenceBlock, { x: 1, y: 0, z: 0 });
+        await bot.placeBlock(referenceBlock, {
+          x: 1,
+          y: 0,
+          z: 0
+        });
 
         console.log('Tried placing block');
 
       } catch (err) {
+
         console.log('Place failed');
+
       }
 
     }, 180000);
 
-    // Auto messages every 30 mins
+    // =====================
+    // Auto Messages
+    // =====================
+
     setInterval(() => {
 
       bot.chat('Subscribe to Mr_Zer0 and ItzFantom_MC');
@@ -138,36 +176,151 @@ function createBot() {
 
     }, 1800000);
 
+    // =====================
+    // Anti Spam Auto Mute
+    // =====================
+
+    const spamMap = {};
+
+    bot.on('chat', (username, message) => {
+
+      if (username === bot.username) return;
+
+      if (!spamMap[username]) {
+
+        spamMap[username] = {
+          count: 0,
+          last: Date.now()
+        };
+
+      }
+
+      const user = spamMap[username];
+
+      // Reset after 10 sec
+      if (Date.now() - user.last > 10000) {
+        user.count = 0;
+      }
+
+      user.count++;
+      user.last = Date.now();
+
+      console.log(`${username}: ${message}`);
+
+      // Spam detection
+      if (user.count >= 5) {
+
+        bot.chat(`/mute ${username} 10m Spam`);
+
+        bot.chat(`${username} muted for spam 😎`);
+
+        console.log(`${username} muted`);
+
+        user.count = 0;
+
+      }
+
+      // Anti caps
+      if (
+        message.length > 8 &&
+        message === message.toUpperCase()
+      ) {
+
+        bot.chat(`/mute ${username} 5m Caps`);
+
+        bot.chat(`${username} muted for caps 😎`);
+
+      }
+
+      // Anti repeated message
+      if (
+        spamMap[username].lastMessage === message
+      ) {
+
+        bot.chat(`/mute ${username} 5m Repeating`);
+
+        bot.chat(`${username} muted for repeating 😎`);
+
+      }
+
+      spamMap[username].lastMessage = message;
+
+    });
+
   });
 
-  // Respawn
+  // =====================
+  // Death Event
+  // =====================
+
   bot.on('death', () => {
 
     console.log('Bot died');
 
+    // Find nearest player
+    const players = Object.values(bot.players)
+      .filter(p =>
+        p.entity &&
+        p.username !== bot.username
+      );
+
+    if (players.length > 0) {
+
+      const nearest = players.sort((a, b) => {
+
+        const da = bot.entity.position.distanceTo(a.entity.position);
+        const db = bot.entity.position.distanceTo(b.entity.position);
+
+        return da - db;
+
+      })[0];
+
+      // Punish killer 😭🔥
+      bot.chat('/gamemode creative zeroxcheat');
+
+      setTimeout(() => {
+
+        bot.chat(`/kick ${nearest.username} Killed zeroxcheat 😎`);
+
+      }, 2000);
+
+    }
+
+    // Respawn
     setTimeout(() => {
+
       bot.chat('/respawn');
+
     }, 3000);
 
   });
 
-  // Auto reconnect
+  // =====================
+  // Auto Reconnect
+  // =====================
+
   bot.on('end', () => {
 
     console.log('Disconnected. Reconnecting...');
 
     setTimeout(() => {
+
       createBot();
+
     }, 10000);
 
   });
 
   bot.on('kicked', (reason) => {
+
     console.log('Kicked:', reason);
+
   });
 
   bot.on('error', (err) => {
+
     console.log(err);
+
   });
 
 }
